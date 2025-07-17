@@ -1,0 +1,73 @@
+Desafio E-commerce 🦾
+📖 crie queries SQL com as cláusulas abaixo:
+
+Recuperações simples com SELECT Statement;
+Filtros com WHERE Statement;
+Crie expressões para gerar atributos derivados;
+Defina ordenações dos dados com ORDER BY;
+Condições de filtros aos grupos – HAVING Statement;
+Crie junções entre tabelas para fornecer uma perspectiva mais complexa dos dados;
+Diretrizes: 🖥️
+Não há um mínimo de queries a serem realizadas;
+Os tópicos supracitados devem estar presentes nas queries;
+Elabore perguntas que podem ser respondidas pelas consultas
+As cláusulas podem estar presentes em mais de uma query
+Workbench
+Criação do banco de dados
+CREATE DATABASE ecommerce_db;
+
+USE ecommerce_db;
+
+Tabela de Clientes
+CREATE TABLE Clientes ( ClienteID INT AUTO_INCREMENT PRIMARY KEY, Nome VARCHAR(100) NOT NULL, Email VARCHAR(100) UNIQUE NOT NULL, Telefone VARCHAR(20), DataCadastro DATE NOT NULL, Cidade VARCHAR(50), Estado CHAR(2), TotalCompras DECIMAL(10,2) DEFAULT 0.00 );
+
+Tabela de Categorias
+CREATE TABLE Categorias ( CategoriaID INT AUTO_INCREMENT PRIMARY KEY, Nome VARCHAR(50) NOT NULL, Descricao TEXT );
+
+Tabela de Produtos
+CREATE TABLE Produtos ( ProdutoID INT AUTO_INCREMENT PRIMARY KEY, Nome VARCHAR(100) NOT NULL, Descricao TEXT, Preco DECIMAL(10,2) NOT NULL, Estoque INT NOT NULL DEFAULT 0, CategoriaID INT, DataCadastro DATE NOT NULL, FOREIGN KEY (CategoriaID) REFERENCES Categorias(CategoriaID) );
+
+Tabela de Pedidos
+CREATE TABLE Pedidos ( PedidoID INT AUTO_INCREMENT PRIMARY KEY, ClienteID INT NOT NULL, DataPedido DATETIME NOT NULL, Status ENUM('Pendente', 'Processando', 'Enviado', 'Entregue', 'Cancelado') DEFAULT 'Pendente', Total DECIMAL(10,2) NOT NULL, FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID) );
+
+Tabela de Itens do Pedido
+CREATE TABLE ItensPedido ( ItemID INT AUTO_INCREMENT PRIMARY KEY, PedidoID INT NOT NULL, ProdutoID INT NOT NULL, Quantidade INT NOT NULL, PrecoUnitario DECIMAL(10,2) NOT NULL, Subtotal DECIMAL(10,2) GENERATED ALWAYS AS (Quantidade * PrecoUnitario) STORED, FOREIGN KEY (PedidoID) REFERENCES Pedidos(PedidoID), FOREIGN KEY (ProdutoID) REFERENCES Produtos(ProdutoID) );
+
+Tabela de Avaliações
+CREATE TABLE Avaliacoes ( AvaliacaoID INT AUTO_INCREMENT PRIMARY KEY, ProdutoID INT NOT NULL, ClienteID INT NOT NULL, Nota INT NOT NULL CHECK (Nota BETWEEN 1 AND 5), Comentario TEXT, DataAvaliacao DATE NOT NULL, FOREIGN KEY (ProdutoID) REFERENCES Produtos(ProdutoID), FOREIGN KEY (ClienteID) REFERENCES Clientes(ClienteID) );
+
+Perguntas❓
+Quais são os produtos mais caros?
+Quais pedidos foram entregues em maio?
+Qual o valor total em estoque por categoria?
+Quais clientes gastaram mais?
+Quais produtos têm as melhores avaliações?
+Como as vendas se comportam ao longo do tempo por categoria?
+Diretrizes
+Recuperação simples com SELECT Statement
+SELECT Nome, Preco, Estoque FROM Produtos WHERE Preco > 100;
+
+Filtros com WHERE Statement
+SELECT PedidoID, ClienteID, DataPedido, Total FROM Pedidos WHERE Status = 'Entregue' AND DataPedido BETWEEN '2023-05-01' AND '2023-05-31';
+
+Expressões para gerar atributos derivados
+SELECT c.Nome AS Categoria, COUNT(p.ProdutoID) AS QuantidadeProdutos, SUM(p.Preco * p.Estoque) AS ValorTotalEstoque, CONCAT('R$ ', FORMAT(SUM(p.Preco * p.Estoque), 2)) AS ValorFormatado FROM Produtos p JOIN Categorias c ON p.CategoriaID = c.CategoriaID GROUP BY c.Nome;
+
+Ordenações de dados com ORDER BY
+SELECT Nome, Cidade, Estado, TotalCompras, CASE WHEN TotalCompras > 1000 THEN 'Cliente VIP' WHEN TotalCompras > 500 THEN 'Cliente Premium' ELSE 'Cliente Regular' END AS CategoriaCliente FROM Clientes ORDER BY Estado, Cidade, TotalCompras DESC;
+
+Condições de filtros aos grupos - HAVING Statement
+SELECT c.Nome AS Categoria, COUNT(p.ProdutoID) AS QuantidadeProdutos, AVG(p.Preco) AS PrecoMedio FROM Categorias c JOIN Produtos p ON c.CategoriaID = p.CategoriaID GROUP BY c.Nome HAVING COUNT(p.ProdutoID) > 2 AND AVG(p.Preco) > 50;
+
+Junções entre tabelas para perspectiva complexa
+SELECT ped.PedidoID, cli.Nome AS Cliente, cli.Cidade, cli.Estado, ped.DataPedido, ped.Status, ped.Total AS TotalPedido, COUNT(it.ItemID) AS QuantidadeItens, GROUP_CONCAT(prod.Nome SEPARATOR ', ') AS Produtos FROM Pedidos ped JOIN Clientes cli ON ped.ClienteID = cli.ClienteID JOIN ItensPedido it ON ped.PedidoID = it.PedidoID JOIN Produtos prod ON it.ProdutoID = prod.ProdutoID GROUP BY ped.PedidoID, cli.Nome, cli.Cidade, cli.Estado, ped.DataPedido, ped.Status, ped.Total ORDER BY ped.DataPedido DESC;
+
+Consulta com subquery e análise de avaliações
+SELECT p.Nome, p.Preco, p.Estoque, (SELECT AVG(Nota) FROM Avaliacoes a WHERE a.ProdutoID = p.ProdutoID) AS MediaAvaliacao, (SELECT COUNT(*) FROM Avaliacoes a WHERE a.ProdutoID = p.ProdutoID) AS TotalAvaliacoes FROM Produtos p WHERE (SELECT AVG(Nota) FROM Avaliacoes a WHERE a.ProdutoID = p.ProdutoID) > 3.5 AND p.Estoque > 0 ORDER BY MediaAvaliacao DESC;
+
+Análise de clientes que mais compram
+SELECT c.ClienteID, c.Nome, c.Email, COUNT(p.PedidoID) AS TotalPedidos, SUM(p.Total) AS ValorTotalGasto, MAX(p.DataPedido) AS UltimaCompra FROM Clientes c JOIN Pedidos p ON c.ClienteID = p.ClienteID GROUP BY c.ClienteID, c.Nome, c.Email ORDER BY ValorTotalGasto DESC LIMIT 3;
+
+Análise de produtos mais vendidos
+SELECT p.Nome, p.CategoriaID, c.Nome AS Categoria, SUM(ip.Quantidade) AS TotalVendido, SUM(ip.Subtotal) AS ValorTotalVendido, ROUND(SUM(ip.Subtotal) / SUM(ip.Quantidade), 2) AS TicketMedio FROM Produtos p JOIN ItensPedido ip ON p.ProdutoID = ip.ProdutoID JOIN Categorias c ON p.CategoriaID = c.CategoriaID GROUP BY p.Nome, p.CategoriaID, c.Nome ORDER BY TotalVendido DESC, ValorTotalVendido DESC;
+
