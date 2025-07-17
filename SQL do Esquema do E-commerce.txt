@@ -1,0 +1,62 @@
+# SQL do Esquema do E-commerce:
+
+## Perguntas❓
+- **Como listar clientes, pedidos e status de entrega?**
+- **O que fazer com clientes com múltiplas formas de pagamento?**
+- **Como informar o valor total gasto por pedido, ordenado do maior para o menor?**
+- **Quais os produtos com seus fornecedores?**
+
+
+
+### Como listar cliente, pedidos e status de entrega❓
+
+*SELECT c.nome, p.pedido_id, p.status, e.status AS status_entrega, e.codigo_rastreio*
+
+*FROM Cliente c*
+
+*JOIN Conta co ON c.cliente_id = co.cliente_id*
+
+*JOIN Pedido p ON co.conta_id = p.conta_id*
+
+*JOIN Entrega e ON p.pedido_id = e.pedido_id*
+
+*ORDER BY c.nome;*
+
+### O que fazer com clientes com múltiplas formas de pagamento❓
+
+*SELECT c.nome, COUNT(cp.forma_pagamento_id) AS formas_pagamento*
+
+*FROM Cliente c*
+
+*JOIN Conta co ON c.cliente_id = co.cliente_id*
+
+*JOIN ContaPagamento cp ON co.conta_id = cp.conta_id*
+
+*GROUP BY c.nome*
+
+*HAVING COUNT(cp.forma_pagamento_id) > 1;*
+
+### Como informar o valor total gasto por pedido, ordenado do maior para o menor❓
+
+*SELECT p.pedido_id, SUM(ip.quantidade * ip.preco_unit) AS valor_total*
+
+*FROM Pedido p*
+
+*JOIN ItemPedido ip ON p.pedido_id = ip.pedido_id*
+
+*GROUP BY p.pedido_id*
+
+*ORDER BY valor_total DESC;*
+
+### Quais os produtos com seus fornecedores❓
+
+*SELECT pr.nome AS produto, f.nome AS fornecedor*
+
+*FROM Produto pr*
+
+*JOIN FornecedorProduto fp ON pr.produto_id = fp.produto_id*
+
+*JOIN Fornecedor f ON fp.fornecedor_id = f.fornecedor_id*
+
+*ORDER BY pr.nome, f.nome;*
+
